@@ -51,25 +51,30 @@ export const AuthProvider = ({ children }) => {
   const joinHousehold = async (householdCode) => {
     if (!currentUser) throw new Error('Must be logged in');
     
-    // Check if household exists
-    const householdRef = doc(db, 'households', householdCode);
-    const householdDoc = await getDoc(householdRef);
-    
-    if (householdDoc.exists()) {
-      // Join existing household
-      const householdData = householdDoc.data();
-      if (!householdData.members.includes(currentUser.uid)) {
-        await setDoc(householdRef, {
-          ...householdData,
-          members: [...householdData.members, currentUser.uid]
-        });
+    try {
+      // Check if household exists
+      const householdRef = doc(db, 'households', householdCode);
+      const householdDoc = await getDoc(householdRef);
+      
+      if (householdDoc.exists()) {
+        // Join existing household
+        const householdData = householdDoc.data();
+        if (!householdData.members.includes(currentUser.uid)) {
+          await setDoc(householdRef, {
+            ...householdData,
+            members: [...householdData.members, currentUser.uid]
+          });
+        }
+        setHouseholdId(householdCode);
+        // Store household ID in user's local storage
+        localStorage.setItem('householdId', householdCode);
+        return householdCode;
+      } else {
+        throw new Error('Household not found');
       }
-      setHouseholdId(householdCode);
-      // Store household ID in user's local storage
-      localStorage.setItem('householdId', householdCode);
-      return householdCode;
-    } else {
-      throw new Error('Household not found');
+    } catch (error) {
+      console.error('Error joining household:', error);
+      throw error;
     }
   };
 

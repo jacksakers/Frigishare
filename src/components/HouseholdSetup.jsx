@@ -34,7 +34,7 @@ const HouseholdSetup = () => {
     setLoading(true);
 
     try {
-      await joinHousehold(householdCode.toUpperCase());
+      await joinHousehold(householdCode.trim().toUpperCase());
     } catch (err) {
       setError('Household not found. Please check the code and try again.');
     } finally {
@@ -217,7 +217,7 @@ const HouseholdSetup = () => {
               <input
                 type="text"
                 value={householdCode}
-                onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
+                onChange={(e) => setHouseholdCode(e.target.value.trim().toUpperCase())}
                 required
                 maxLength="6"
                 className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-center text-2xl font-bold tracking-widest uppercase"
