@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { db } from './firebase/config';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, getDoc, setDoc } from 'firebase/firestore';
 import AuthPage from './components/AuthPage';
 import HouseholdSetup from './components/HouseholdSetup';
 import Header from './components/Header';
@@ -42,6 +42,9 @@ function MainApp() {
   const [inventory, setInventory] = useState([]);
   const [shoppingList, setShoppingList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [lastCheckIn, setLastCheckIn] = useState(null);
+  const [daysSinceLastCheckIn, setDaysSinceLastCheckIn] = useState(0);
+  const [consumptionItems, setConsumptionItems] = useState([]);
 
   // -- Firestore: Real-time listener for inventory items --
   useEffect(() => {
@@ -85,6 +88,61 @@ function MainApp() {
     return () => unsubscribe();
   }, [householdId]);
 
+  // -- Check Last Check-In Date --
+  useEffect(() => {
+    if (!householdId || inventory.length === 0) return;
+
+    const checkLastCheckIn = async () => {
+      try {
+        const householdRef = doc(db, 'households', householdId);
+        const householdDoc = await getDoc(householdRef);
+        
+        if (householdDoc.exists()) {
+          const data = householdDoc.data();
+          const lastCheckInDate = data.lastCheckIn?.toDate();
+          
+          if (lastCheckInDate) {
+            const today = new Date();
+            const daysDiff = Math.floor((today - lastCheckInDate) / (1000 * 60 * 60 * 24));
+            
+            setLastCheckIn(lastCheckInDate);
+            setDaysSinceLastCheckIn(daysDiff);
+            
+            // If it's been 3 or more days, trigger consumption modal
+            if (daysDiff >= 3) {
+              const itemsWithUsage = inventory.filter(item => item.weeklyUsage > 0);
+              if (itemsWithUsage.length > 0) {
+                // Calculate adjusted consumption based on days passed
+                const adjustedItems = itemsWithUsage.map(item => {
+                  const dailyUsage = item.weeklyUsage / 7;
+                  const estimatedUsage = Math.round(dailyUsage * daysDiff * 100) / 100;
+                  return {
+                    ...item,
+                    estimatedUsage,
+                    actualUsage: estimatedUsage // Default to estimated
+                  };
+                });
+                setConsumptionItems(adjustedItems);
+                setShowConsumptionModal(true);
+              }
+            }
+          } else {
+            // First time - set current date
+            await setDoc(householdRef, {
+              ...data,
+              lastCheckIn: new Date()
+            });
+            setLastCheckIn(new Date());
+          }
+        }
+      } catch (error) {
+        console.error('Error checking last check-in:', error);
+      }
+    };
+
+    checkLastCheckIn();
+  }, [householdId, inventory.length]);
+
   // -- Logic: Shopping List Generator --
   useEffect(() => {
     if (!householdId || inventory.length === 0) return;
@@ -105,7 +163,9 @@ function MainApp() {
           await addDoc(shoppingRef, {
             name: item.name,
             checked: false,
-            autoAdded: true
+            autoAdded: true,
+            category: item.category || 'other',
+            note: ''
           });
         } catch (error) {
           console.error('Error adding to shopping list:', error);
@@ -114,26 +174,43 @@ function MainApp() {
     });
   }, [inventory, householdId, shoppingList]);
 
-  // -- Logic: Consumption Simulator --
+  // -- Logic: Consumption Simulator (for manual testing) --
   const triggerWeeklyConsumption = () => {
-    setShowConsumptionModal(true);
+    const itemsWithUsage = inventory.filter(item => item.weeklyUsage > 0);
+    if (itemsWithUsage.length > 0) {
+      const adjustedItems = itemsWithUsage.map(item => ({
+        ...item,
+        estimatedUsage: item.weeklyUsage,
+        actualUsage: item.weeklyUsage
+      }));
+      setConsumptionItems(adjustedItems);
+      setDaysSinceLastCheckIn(7); // Simulate 7 days
+      setShowConsumptionModal(true);
+    }
   };
 
-  const confirmConsumption = async () => {
+  const confirmConsumption = async (adjustedConsumptionItems) => {
     if (!householdId) return;
 
     try {
-      const itemsToUpdate = inventory.filter(item => item.weeklyUsage > 0);
-      
-      for (const item of itemsToUpdate) {
-        const newQty = Math.max(0, item.qty - item.weeklyUsage);
+      // Update each item with the user-confirmed consumption
+      for (const item of adjustedConsumptionItems) {
+        const newQty = Math.max(0, item.qty - item.actualUsage);
         const itemRef = doc(db, 'households', householdId, 'items', item.id);
         await updateDoc(itemRef, {
           qty: parseFloat(newQty.toFixed(2))
         });
       }
       
+      // Update last check-in date
+      const householdRef = doc(db, 'households', householdId);
+      await updateDoc(householdRef, {
+        lastCheckIn: new Date()
+      });
+      
       setShowConsumptionModal(false);
+      setConsumptionItems([]);
+      setDaysSinceLastCheckIn(0);
     } catch (error) {
       console.error('Error updating consumption:', error);
     }
@@ -323,9 +400,13 @@ function MainApp() {
 
       <ConsumptionModal 
         isOpen={showConsumptionModal}
-        onClose={() => setShowConsumptionModal(false)}
+        onClose={() => {
+          setShowConsumptionModal(false);
+          setConsumptionItems([]);
+        }}
         onConfirm={confirmConsumption}
-        inventory={inventory}
+        consumptionItems={consumptionItems}
+        daysSinceLastCheckIn={daysSinceLastCheckIn}
       />
 
     </div>

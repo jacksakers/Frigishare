@@ -128,19 +128,38 @@ Phase 2: Firebase Connection
 
 Phase 3: The CRUD Logic
 
-[ ] Replace local state with Firestore Hooks (onSnapshot for real-time updates).
+[X] Replace local state with Firestore Hooks (onSnapshot for real-time updates).
 
-[ ] Build the "Add Item" Form (Name, Qty, Location, Usage Rate).
+[X] Build the "Add Item" Form (Name, Qty, Location, Usage Rate).
 
-[ ] Build the "Edit Item" functionality (Moving items between shelves).
+[X] Build the "Edit Item" functionality (Moving items between shelves).
 
 Phase 4: Intelligence & Logic
 
-[ ] Implement the "Weekly Consumption" checker.
+[X] Implement the "Weekly Consumption" checker.
+    - Date-based tracking: Stores lastCheckIn date in household
+    - Calculates consumption based on days passed (not just weekly)
+    - Smart modal with adjustable consumption amounts (+/-)
+    - Shows estimated vs actual consumption
+    - Updates lastCheckIn after confirmation
 
-[ ] Build the Shopping List view.
+[X] Build the Shopping List view.
+    - Enhanced with category support (8 categories)
+    - Added notes/sticky notes on items
+    - Sorting options: Default, Category, A-Z
+    - Visual category emojis
+    - Edit functionality for each item
 
-[ ] Link Inventory Low-Stock -> Shopping List.
+[X] Link Inventory Low-Stock -> Shopping List.
+    - Auto-adds items when below minThreshold
+    - Includes category information
+    - Shows "Auto-Added" badge
+
+[X] Shopping List to Fridge Flow
+    - When checking off items, modal appears to add to fridge
+    - Can specify quantity, unit, location, shelf
+    - Automatically removes from shopping list after adding
+    - Preserves category and notes from shopping list
 
 Phase 5: Future AI
 

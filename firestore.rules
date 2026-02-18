@@ -18,6 +18,7 @@ service cloud.firestore {
                        request.auth.uid in request.resource.data.members;
       
       // Allow update only if user is already a member OR is adding themselves to members
+      // Also allow members to update lastCheckIn
       allow update: if request.auth != null && 
                        (request.auth.uid in resource.data.members ||
                         request.auth.uid in request.resource.data.members);
