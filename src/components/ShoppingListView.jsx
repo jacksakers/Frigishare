@@ -1,24 +1,49 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
+import { db } from '../firebase/config';
+import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
 
 const ShoppingListView = ({ shoppingList, setShoppingList }) => {
-  const handleToggleChecked = (id) => {
-    setShoppingList(sl => sl.map(i => i.id === id ? {...i, checked: !i.checked} : i));
+  const { householdId } = useAuth();
+
+  const handleToggleChecked = async (id, currentChecked) => {
+    if (!householdId) return;
+    
+    try {
+      const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
+      await updateDoc(itemRef, { checked: !currentChecked });
+    } catch (error) {
+      console.error('Error toggling item:', error);
+    }
   };
 
-  const handleRemoveItem = (id) => {
-    setShoppingList(sl => sl.filter(i => i.id !== id));
+  const handleRemoveItem = async (id) => {
+    if (!householdId) return;
+    
+    try {
+      const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
+      await deleteDoc(itemRef);
+    } catch (error) {
+      console.error('Error removing item:', error);
+    }
   };
 
-  const handleAddItem = (e) => {
+  const handleAddItem = async (e) => {
     if(e.key === 'Enter' && e.currentTarget.value) {
-      setShoppingList(prev => [...prev, { 
-        id: Date.now(), 
-        name: e.currentTarget.value, 
-        checked: false, 
-        autoAdded: false 
-      }]);
-      e.currentTarget.value = '';
+      if (!householdId) return;
+
+      try {
+        const shoppingRef = collection(db, 'households', householdId, 'shopping_list');
+        await addDoc(shoppingRef, {
+          name: e.currentTarget.value,
+          checked: false,
+          autoAdded: false
+        });
+        e.currentTarget.value = '';
+      } catch (error) {
+        console.error('Error adding item:', error);
+      }
     }
   };
 
@@ -39,7 +64,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList }) => {
         {shoppingList.map(item => (
           <div key={item.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg group">
             <button 
-              onClick={() => handleToggleChecked(item.id)}
+              onClick={() => handleToggleChecked(item.id, item.checked)}
               className={`w-6 h-6 rounded border-2 flex items-center justify-center transition ${item.checked ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}
             >
               {item.checked && <Check size={16} className="text-white" />}

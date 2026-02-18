@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
+import { db } from './firebase/config';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query } from 'firebase/firestore';
 import AuthPage from './components/AuthPage';
 import HouseholdSetup from './components/HouseholdSetup';
 import Header from './components/Header';
@@ -30,69 +32,120 @@ export default function App() {
 }
 
 function MainApp() {
+  const { householdId } = useAuth();
   const [view, setView] = useState('fridge'); // fridge, pantry, list
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [showConsumptionModal, setShowConsumptionModal] = useState(false);
   
-  // -- State: Mock Data --
-  const [inventory, setInventory] = useState([
-    { id: 1, name: 'Bagels', location: 'fridge', subLocation: 'Middle Shelf', category: 'grain', qty: 6, unit: 'count', weeklyUsage: 3, minThreshold: 2, note: "Jerry's - don't touch" },
-    { id: 2, name: 'Milk', location: 'fridge', subLocation: 'Door', category: 'dairy', qty: 0.5, unit: 'gallon', weeklyUsage: 0.5, minThreshold: 0.2, note: '' },
-    { id: 3, name: 'Carrots', location: 'fridge', subLocation: 'Crisper', category: 'veg', qty: 5, unit: 'whole', weeklyUsage: 2, minThreshold: 2, note: '' },
-    { id: 4, name: 'Pasta Sauce', location: 'pantry', subLocation: 'Top Shelf', category: 'condiment', qty: 2, unit: 'jars', weeklyUsage: 0, minThreshold: 1, note: '' },
-    { id: 5, name: 'Rice', location: 'pantry', subLocation: 'Bottom Shelf', category: 'grain', qty: 10, unit: 'lbs', weeklyUsage: 0, minThreshold: 2, note: '' },
-  ]);
+  // -- State: Firestore Data --
+  const [inventory, setInventory] = useState([]);
+  const [shoppingList, setShoppingList] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [shoppingList, setShoppingList] = useState([
-    { id: 101, name: 'Butter', checked: false, autoAdded: false }
-  ]);
+  // -- Firestore: Real-time listener for inventory items --
+  useEffect(() => {
+    if (!householdId) return;
+
+    const itemsRef = collection(db, 'households', householdId, 'items');
+    const q = query(itemsRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setInventory(items);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching items:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [householdId]);
+
+  // -- Firestore: Real-time listener for shopping list --
+  useEffect(() => {
+    if (!householdId) return;
+
+    const shoppingRef = collection(db, 'households', householdId, 'shopping_list');
+    const q = query(shoppingRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setShoppingList(items);
+    }, (error) => {
+      console.error('Error fetching shopping list:', error);
+    });
+
+    return () => unsubscribe();
+  }, [householdId]);
 
   // -- Logic: Shopping List Generator --
   useEffect(() => {
+    if (!householdId || inventory.length === 0) return;
+
     // Whenever inventory changes, check for low stock
     const lowItems = inventory.filter(i => i.qty <= i.minThreshold);
     
-    setShoppingList(prevList => {
-      const newList = [...prevList];
-      lowItems.forEach(item => {
-        // If item not already in list, add it
-        if (!newList.find(li => li.name.toLowerCase() === item.name.toLowerCase() && !li.checked)) {
-          newList.push({
-            id: Date.now() + Math.random(),
+    // Check each low item against current shopping list
+    lowItems.forEach(async (item) => {
+      // If item not already in list, add it
+      const exists = shoppingList.find(
+        li => li.name.toLowerCase() === item.name.toLowerCase() && !li.checked
+      );
+      
+      if (!exists) {
+        try {
+          const shoppingRef = collection(db, 'households', householdId, 'shopping_list');
+          await addDoc(shoppingRef, {
             name: item.name,
             checked: false,
             autoAdded: true
           });
+        } catch (error) {
+          console.error('Error adding to shopping list:', error);
         }
-      });
-      return newList;
+      }
     });
-  }, [inventory]);
+  }, [inventory, householdId, shoppingList]);
 
   // -- Logic: Consumption Simulator --
   const triggerWeeklyConsumption = () => {
     setShowConsumptionModal(true);
   };
 
-  const confirmConsumption = () => {
-    setInventory(prev => prev.map(item => {
-      if (item.weeklyUsage > 0) {
-        // Ensure we don't go below 0
+  const confirmConsumption = async () => {
+    if (!householdId) return;
+
+    try {
+      const itemsToUpdate = inventory.filter(item => item.weeklyUsage > 0);
+      
+      for (const item of itemsToUpdate) {
         const newQty = Math.max(0, item.qty - item.weeklyUsage);
-        return { ...item, qty: parseFloat(newQty.toFixed(2)) };
+        const itemRef = doc(db, 'households', householdId, 'items', item.id);
+        await updateDoc(itemRef, {
+          qty: parseFloat(newQty.toFixed(2))
+        });
       }
-      return item;
-    }));
-    setShowConsumptionModal(false);
+      
+      setShowConsumptionModal(false);
+    } catch (error) {
+      console.error('Error updating consumption:', error);
+    }
   };
 
   // -- Handlers --
-  const handleAddItem = (e) => {
+  const handleAddItem = async (e) => {
     e.preventDefault();
+    if (!householdId) return;
+
     const formData = new FormData(e.target);
     const newItem = {
-      id: Date.now(),
       name: formData.get('name'),
       location: view === 'pantry' ? 'pantry' : 'fridge',
       subLocation: formData.get('subLocation'),
@@ -101,18 +154,24 @@ function MainApp() {
       unit: formData.get('unit'),
       weeklyUsage: parseFloat(formData.get('weeklyUsage') || 0),
       minThreshold: parseFloat(formData.get('minThreshold') || 0),
-      note: formData.get('note')
+      note: formData.get('note') || ''
     };
     
-    setInventory([...inventory, newItem]);
-    setIsAddModalOpen(false);
+    try {
+      const itemsRef = collection(db, 'households', householdId, 'items');
+      await addDoc(itemsRef, newItem);
+      setIsAddModalOpen(false);
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
   };
 
-  const handleUpdateItem = (e) => {
+  const handleUpdateItem = async (e) => {
     e.preventDefault();
+    if (!householdId || !editingItem) return;
+
     const formData = new FormData(e.target);
-    setInventory(inventory.map(i => i.id === editingItem.id ? {
-      ...i,
+    const updatedData = {
       name: formData.get('name'),
       subLocation: formData.get('subLocation'),
       category: formData.get('category'),
@@ -120,14 +179,28 @@ function MainApp() {
       unit: formData.get('unit'),
       weeklyUsage: parseFloat(formData.get('weeklyUsage') || 0),
       minThreshold: parseFloat(formData.get('minThreshold') || 0),
-      note: formData.get('note')
-    } : i));
-    setEditingItem(null);
+      note: formData.get('note') || ''
+    };
+    
+    try {
+      const itemRef = doc(db, 'households', householdId, 'items', editingItem.id);
+      await updateDoc(itemRef, updatedData);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
   };
 
-  const handleDelete = (id) => {
-    setInventory(inventory.filter(i => i.id !== id));
-    setEditingItem(null);
+  const handleDelete = async (id) => {
+    if (!householdId) return;
+
+    try {
+      const itemRef = doc(db, 'households', householdId, 'items', id);
+      await deleteDoc(itemRef);
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
   };
 
   // --- Render Helpers ---
@@ -162,8 +235,19 @@ function MainApp() {
       {/* --- Header --- */}
       <Header onSimulateWeek={triggerWeeklyConsumption} />
 
+      {/* --- Loading State --- */}
+      {loading && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+            <p className="text-slate-500">Loading your fridge...</p>
+          </div>
+        </div>
+      )}
+
       {/* --- Main Content Area --- */}
-      <main className="p-4 max-w-2xl mx-auto">
+      {!loading && (
+        <main className="p-4 max-w-2xl mx-auto">
         
         {view === 'fridge' && (
           <div className="animate-fade-in">
@@ -203,9 +287,10 @@ function MainApp() {
         )}
 
       </main>
+      )}
 
       {/* --- Floating Action Button --- */}
-      {(view === 'fridge' || view === 'pantry') && (
+      {!loading && (view === 'fridge' || view === 'pantry') && (
         <button 
           onClick={() => setIsAddModalOpen(true)}
           className="fixed bottom-24 right-6 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-200 flex items-center justify-center hover:scale-110 transition z-30"
