@@ -1,3 +1,13 @@
+// Helper function to generate a consistent ID from item name
+// This ensures that "Greek Yogurt" always gets the same ID
+export const generateItemId = (name) => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+};
+
 // Helper function for category emojis
 export const getCategoryEmoji = (cat) => {
   switch(cat) {

@@ -13,6 +13,7 @@ import AddItemModal from './components/AddItemModal';
 import EditItemModal from './components/EditItemModal';
 import ConsumptionModal from './components/ConsumptionModal';
 import ShoppingListView from './components/ShoppingListView';
+import { generateItemId } from './utils/helpers';
 
 export default function App() {
   const { currentUser, householdId } = useAuth();
@@ -222,12 +223,17 @@ function MainApp() {
     if (!householdId) return;
 
     const formData = new FormData(e.target);
+    const itemName = formData.get('name');
+    const itemId = generateItemId(itemName);
+    const qty = parseFloat(formData.get('qty'));
+    const location = formData.get('location') || (view === 'pantry' ? 'pantry' : 'fridge');
+    
     const newItem = {
-      name: formData.get('name'),
-      location: view === 'pantry' ? 'pantry' : 'fridge',
+      name: itemName,
+      location: location,
       subLocation: formData.get('subLocation'),
       category: formData.get('category'),
-      qty: parseFloat(formData.get('qty')),
+      qty: qty,
       unit: formData.get('unit'),
       weeklyUsage: parseFloat(formData.get('weeklyUsage') || 0),
       minThreshold: parseFloat(formData.get('minThreshold') || 0),
@@ -235,9 +241,25 @@ function MainApp() {
     };
     
     try {
-      const itemsRef = collection(db, 'households', householdId, 'items');
-      await addDoc(itemsRef, newItem);
+      const itemRef = doc(db, 'households', householdId, 'items', itemId);
+      const existingDoc = await getDoc(itemRef);
+      
+      if (existingDoc.exists()) {
+        // Item exists, merge quantities
+        const existingData = existingDoc.data();
+        await updateDoc(itemRef, {
+          qty: existingData.qty + qty,
+          // Update other fields if needed
+          note: newItem.note || existingData.note,
+          subLocation: newItem.subLocation || existingData.subLocation
+        });
+      } else {
+        // New item, create it
+        await setDoc(itemRef, newItem);
+      }
+      
       setIsAddModalOpen(false);
+      e.target.reset(); // Reset form after submission
     } catch (error) {
       console.error('Error adding item:', error);
     }
@@ -250,6 +272,7 @@ function MainApp() {
     const formData = new FormData(e.target);
     const updatedData = {
       name: formData.get('name'),
+      location: formData.get('location') || editingItem.location,
       subLocation: formData.get('subLocation'),
       category: formData.get('category'),
       qty: parseFloat(formData.get('qty')),

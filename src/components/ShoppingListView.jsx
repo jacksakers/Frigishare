@@ -1,49 +1,57 @@
 import React, { useState } from 'react';
 import { Check, X, StickyNote, Edit, ArrowUpDown } from 'lucide-react';
 import { db } from '../firebase/config';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { getCategoryEmoji } from '../utils/helpers';
-import AddToFridgeModal from './AddToFridgeModal';
+import { getCategoryEmoji, generateItemId } from '../utils/helpers';
 import EditShoppingItemModal from './EditShoppingItemModal';
 
 const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
   const { householdId } = useAuth();
   const [sortBy, setSortBy] = useState('default'); // default, category, name
-  const [itemToAddToFridge, setItemToAddToFridge] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
 
   const handleToggleChecked = async (id, currentChecked, item) => {
     if (!householdId) return;
     
     try {
-      // If checking the item, show modal to add to fridge
+      // If checking the item (buying it), add to fridge automatically
       if (!currentChecked) {
-        setItemToAddToFridge(item);
+        const itemId = generateItemId(item.name);
+        const itemRef = doc(db, 'households', householdId, 'items', itemId);
+        const existingDoc = await getDoc(itemRef);
+        
+        if (existingDoc.exists()) {
+          // Item exists in fridge, increment quantity
+          const existingData = existingDoc.data();
+          await updateDoc(itemRef, {
+            qty: existingData.qty + 1
+          });
+        } else {
+          // New item, add to middle shelf in fridge
+          await setDoc(itemRef, {
+            name: item.name,
+            location: 'fridge',
+            subLocation: 'Middle Shelf',
+            category: item.category || 'other',
+            qty: 1,
+            unit: 'count',
+            weeklyUsage: 0,
+            minThreshold: 1,
+            note: item.note || ''
+          });
+        }
+        
+        // Remove from shopping list
+        const shoppingItemRef = doc(db, 'households', householdId, 'shopping_list', id);
+        await deleteDoc(shoppingItemRef);
+      } else {
+        // Unchecking - just update the checked status
+        const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
+        await updateDoc(itemRef, { checked: false });
       }
-      
-      const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
-      await updateDoc(itemRef, { checked: !currentChecked });
     } catch (error) {
       console.error('Error toggling item:', error);
-    }
-  };
-
-  const handleAddToFridge = async (itemData) => {
-    if (!householdId || !itemToAddToFridge) return;
-    
-    try {
-      // Add to inventory
-      const itemsRef = collection(db, 'households', householdId, 'items');
-      await addDoc(itemsRef, itemData);
-      
-      // Remove from shopping list
-      const shoppingItemRef = doc(db, 'households', householdId, 'shopping_list', itemToAddToFridge.id);
-      await deleteDoc(shoppingItemRef);
-      
-      setItemToAddToFridge(null);
-    } catch (error) {
-      console.error('Error adding to fridge:', error);
     }
   };
 
@@ -215,13 +223,6 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
           />
         </div>
       </div>
-
-      <AddToFridgeModal 
-        item={itemToAddToFridge}
-        isOpen={!!itemToAddToFridge}
-        onClose={() => setItemToAddToFridge(null)}
-        onConfirm={handleAddToFridge}
-      />
 
       <EditShoppingItemModal 
         item={editingItem}
