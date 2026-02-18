@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
+import AuthPage from './components/AuthPage';
+import HouseholdSetup from './components/HouseholdSetup';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Shelf from './components/Shelf';
@@ -10,6 +13,23 @@ import ConsumptionModal from './components/ConsumptionModal';
 import ShoppingListView from './components/ShoppingListView';
 
 export default function App() {
+  const { currentUser, householdId } = useAuth();
+
+  // Show auth page if not logged in
+  if (!currentUser) {
+    return <AuthPage />;
+  }
+
+  // Show household setup if logged in but no household
+  if (!householdId) {
+    return <HouseholdSetup />;
+  }
+
+  // Main app content (when authenticated and household is set)
+  return <MainApp />;
+}
+
+function MainApp() {
   const [view, setView] = useState('fridge'); // fridge, pantry, list
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
