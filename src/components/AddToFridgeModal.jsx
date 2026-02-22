@@ -55,6 +55,7 @@ const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
               <input 
                 type="number" 
                 step="0.5"
+                min="0"
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
                 className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"

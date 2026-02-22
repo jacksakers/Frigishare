@@ -25,7 +25,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
           // Item exists in fridge, increment quantity
           const existingData = existingDoc.data();
           await updateDoc(itemRef, {
-            qty: existingData.qty + 1
+            qty: Math.max(0, existingData.qty + 1)
           });
         } else {
           // New item, add to middle shelf in fridge

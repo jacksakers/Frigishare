@@ -255,7 +255,7 @@ function MainApp() {
         // Item exists, merge quantities
         const existingData = existingDoc.data();
         await updateDoc(itemRef, {
-          qty: roundToHalf(existingData.qty + qty),
+          qty: Math.max(0, roundToHalf(existingData.qty + qty)),
           // Update other fields if needed
           note: newItem.note || existingData.note,
           subLocation: newItem.subLocation || existingData.subLocation
@@ -283,10 +283,10 @@ function MainApp() {
       location: formData.get('location') || editingItem.location,
       subLocation: formData.get('subLocation'),
       category: formData.get('category'),
-      qty: roundToHalf(parseFloat(formData.get('qty'))),
+      qty: Math.max(0, roundToHalf(parseFloat(formData.get('qty')))),
       unit: formData.get('unit'),
-      weeklyUsage: roundToHalf(parseFloat(formData.get('weeklyUsage') || 0)),
-      minThreshold: roundToHalf(parseFloat(formData.get('minThreshold') || 0)),
+      weeklyUsage: Math.max(0, roundToHalf(parseFloat(formData.get('weeklyUsage') || 0))),
+      minThreshold: Math.max(0, roundToHalf(parseFloat(formData.get('minThreshold') || 0))),
       note: formData.get('note') || ''
     };
     

@@ -4,7 +4,8 @@ import { getCategoryEmoji } from '../utils/helpers';
 
 // The Food Item Card Component
 const FoodItem = ({ item, onEdit }) => {
-  const isLow = item.qty <= item.minThreshold;
+  const isOutOfStock = item.qty === 0;
+  const isLow = item.qty <= item.minThreshold && item.qty > 0;
 
   return (
     <div 
@@ -12,7 +13,7 @@ const FoodItem = ({ item, onEdit }) => {
       className={`
         relative group flex-shrink-0 w-32 h-36 bg-white rounded-xl shadow-md border-2 
         flex flex-col items-center justify-center p-2 cursor-pointer transition-transform hover:-translate-y-1
-        ${isLow ? 'border-red-300 bg-red-50' : 'border-slate-100'}
+        ${isOutOfStock ? 'border-slate-300 bg-slate-100 opacity-60' : isLow ? 'border-red-300 bg-red-50' : 'border-slate-100'}
       `}
     >
       {/* Sticky Note Indicator */}
@@ -23,13 +24,17 @@ const FoodItem = ({ item, onEdit }) => {
       )}
 
       {/* Icon Placeholder based on Category */}
-      <div className="text-3xl mb-2">
+      <div className={`text-3xl mb-2 ${isOutOfStock ? 'grayscale' : ''}`}>
         {getCategoryEmoji(item.category)}
       </div>
 
       <div className="text-center w-full">
-        <p className="font-bold text-slate-700 text-sm truncate w-full">{item.name}</p>
-        <p className="text-xs text-slate-400">{item.qty} {item.unit}</p>
+        <p className={`font-bold text-sm truncate w-full ${isOutOfStock ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+          {item.name}
+        </p>
+        <p className="text-xs text-slate-400">
+          {isOutOfStock ? 'OUT OF STOCK' : `${item.qty} ${item.unit}`}
+        </p>
       </div>
 
       {/* Auto-Use Indicator */}

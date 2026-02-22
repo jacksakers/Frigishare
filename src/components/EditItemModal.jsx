@@ -34,6 +34,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   name="qty" 
                   type="number" 
                   step="0.5" 
+                  min="0"
                   defaultValue={item.qty} 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
                 />
