@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, X, Plus, Minus } from 'lucide-react';
-import { CATEGORIES, roundToHalf } from '../utils/helpers';
+import { CATEGORIES, roundToHalf, getPreviousItem } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase/config';
 
 const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
+  const { householdId } = useAuth();
   const [location, setLocation] = useState('fridge');
   const [subLocation, setSubLocation] = useState('Top Shelf');
   const [category, setCategory] = useState('other');
   const [qty, setQty] = useState(1);
   const [unit, setUnit] = useState('servings');
+
+  // Fetch previous item data to get purchase amount as default
+  useEffect(() => {
+    if (isOpen && item && householdId) {
+      const loadDefaults = async () => {
+        const previousItem = await getPreviousItem(db, householdId, item.name);
+        if (previousItem) {
+          setQty(previousItem.purchaseAmount || 1);
+          setLocation(previousItem.location || 'fridge');
+          setSubLocation(previousItem.subLocation || 'Top Shelf');
+          setCategory(previousItem.category || 'other');
+          setUnit(previousItem.unit || 'servings');
+        } else {
+          // Reset to defaults if no previous data
+          setQty(1);
+          setLocation('fridge');
+          setSubLocation('Top Shelf');
+          setCategory('other');
+          setUnit('servings');
+        }
+      };
+      loadDefaults();
+    }
+  }, [isOpen, item, householdId]);
 
   if (!isOpen || !item) return null;
 

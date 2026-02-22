@@ -7,6 +7,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
   const [qty, setQty] = useState(0);
   const [weeklyUsage, setWeeklyUsage] = useState(0);
   const [minThreshold, setMinThreshold] = useState(0);
+  const [purchaseAmount, setPurchaseAmount] = useState(1);
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
@@ -17,6 +18,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
       setQty(item.qty || 0);
       setWeeklyUsage(item.weeklyUsage || 0);
       setMinThreshold(item.minThreshold || 0);
+      setPurchaseAmount(item.purchaseAmount || 1);
       setLocation(item.location || 'fridge');
       setCategory(item.category || 'other');
       setNote(item.note || '');
@@ -31,6 +33,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
     formData.set('qty', qty.toString());
     formData.set('weeklyUsage', weeklyUsage.toString());
     formData.set('minThreshold', minThreshold.toString());
+    formData.set('purchaseAmount', purchaseAmount.toString());
     formData.set('location', location);
     formData.set('category', category);
     formData.set('note', note);
@@ -61,6 +64,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
           <input type="hidden" name="qty" value={qty} />
           <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
           <input type="hidden" name="minThreshold" value={minThreshold} />
+          <input type="hidden" name="purchaseAmount" value={purchaseAmount} />
           <input type="hidden" name="location" value={location} />
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="note" value={note} />
@@ -219,6 +223,32 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   <button 
                     type="button"
                     onClick={() => setMinThreshold(roundToHalf(minThreshold + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase flex justify-between">
+                  <span>Purchase Amount</span>
+                  <span className="text-slate-400 font-normal normal-case">Units per purchase</span>
+                </label>
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setPurchaseAmount(Math.max(0.5, roundToHalf(purchaseAmount - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{purchaseAmount}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setPurchaseAmount(roundToHalf(purchaseAmount + 0.5))}
                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
                   >
                     <Plus size={16} />

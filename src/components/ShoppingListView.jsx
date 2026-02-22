@@ -32,26 +32,28 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
         const itemRef = doc(db, 'households', householdId, 'items', itemId);
         const existingDoc = await getDoc(itemRef);
         
-        if (existingDoc.exists()) {
-          // Item exists in fridge, increment quantity
-          const existingData = existingDoc.data();
-          await updateDoc(itemRef, {
-            qty: Math.max(0, existingData.qty + 1)
-          });
-        } else {
-          // Check for previous item data to get better defaults
-          const previousItem = await getPreviousItem(db, householdId, item.name);
-          
-          // New item, add to fridge with saved location or default to middle shelf
-          await setDoc(itemRef, {
-            name: item.name,
-            location: previousItem?.location || 'fridge',
-            subLocation: previousItem?.subLocation || 'Middle Shelf',
-            category: item.category || previousItem?.category || 'other',
-            qty: 1,
-            unit: previousItem?.unit || 'servings',
-            weeklyUsage: previousItem?.weeklyUsage || 0,
-            minThreshold: previousItem?.minThreshold || 1,
+// Check for previous item data to get purchase amount
+      const previousItem = await getPreviousItem(db, householdId, item.name);
+      const purchaseAmount = previousItem?.purchaseAmount || 1;
+      
+      if (existingDoc.exists()) {
+        // Item exists in fridge, increment quantity by purchase amount
+        const existingData = existingDoc.data();
+        await updateDoc(itemRef, {
+          qty: Math.max(0, existingData.qty + purchaseAmount)
+        });
+      } else {
+        // New item, add to fridge with saved location or default to middle shelf
+        await setDoc(itemRef, {
+          name: item.name,
+          location: previousItem?.location || 'fridge',
+          subLocation: previousItem?.subLocation || 'Middle Shelf',
+          category: item.category || previousItem?.category || 'other',
+          qty: purchaseAmount,
+          unit: previousItem?.unit || 'servings',
+          weeklyUsage: previousItem?.weeklyUsage || 0,
+          minThreshold: previousItem?.minThreshold || 1,
+          purchaseAmount: purchaseAmount,
             note: item.note || previousItem?.note || ''
           });
         }

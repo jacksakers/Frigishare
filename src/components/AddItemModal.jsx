@@ -11,6 +11,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
   const [qty, setQty] = useState(1);
   const [weeklyUsage, setWeeklyUsage] = useState(0);
   const [minThreshold, setMinThreshold] = useState(1);
+  const [purchaseAmount, setPurchaseAmount] = useState(1);
   const [location, setLocation] = useState(currentLocation || 'fridge');
   const [category, setCategory] = useState('other');
   const [note, setNote] = useState('');
@@ -25,6 +26,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
       setQty(1);
       setWeeklyUsage(0);
       setMinThreshold(1);
+      setPurchaseAmount(1);
       setLocation(currentLocation || 'fridge');
       setCategory('other');
       setNote('');
@@ -36,6 +38,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
     if (previousItemData) {
       setWeeklyUsage(previousItemData.weeklyUsage || 0);
       setMinThreshold(previousItemData.minThreshold || 1);
+      setPurchaseAmount(previousItemData.purchaseAmount || 1);
       setCategory(previousItemData.category || 'other');
       setNote(previousItemData.note || '');
       setLocation(previousItemData.location || currentLocation || 'fridge');
@@ -72,6 +75,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
           {/* Hidden inputs to preserve state values when Advanced Settings is closed */}
           <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
           <input type="hidden" name="minThreshold" value={minThreshold} />
+          <input type="hidden" name="purchaseAmount" value={purchaseAmount} />
           <input type="hidden" name="location" value={location} />
           <input type="hidden" name="category" value={category} />
           <input type="hidden" name="note" value={note} />
@@ -258,6 +262,32 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   <button 
                     type="button"
                     onClick={() => setMinThreshold(roundToHalf(minThreshold + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase flex justify-between">
+                  <span>Purchase Amount</span>
+                  <span className="text-slate-400 font-normal normal-case">Units per purchase</span>
+                </label>
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setPurchaseAmount(Math.max(0.5, roundToHalf(purchaseAmount - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{purchaseAmount}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setPurchaseAmount(roundToHalf(purchaseAmount + 0.5))}
                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
                   >
                     <Plus size={16} />

@@ -261,6 +261,7 @@ function MainApp() {
       unit: formData.get('unit'),
       weeklyUsage: roundToHalf(parseFloat(formData.get('weeklyUsage') || 0)),
       minThreshold: roundToHalf(parseFloat(formData.get('minThreshold') || 0)),
+      purchaseAmount: roundToHalf(parseFloat(formData.get('purchaseAmount') || 1)),
       note: formData.get('note') || ''
     };
     
@@ -304,6 +305,7 @@ function MainApp() {
       unit: formData.get('unit'),
       weeklyUsage: Math.max(0, roundToHalf(parseFloat(formData.get('weeklyUsage') || 0))),
       minThreshold: Math.max(0, roundToHalf(parseFloat(formData.get('minThreshold') || 0))),
+      purchaseAmount: Math.max(0.5, roundToHalf(parseFloat(formData.get('purchaseAmount') || 1))),
       note: formData.get('note') || ''
     };
     

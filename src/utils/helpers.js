@@ -78,6 +78,7 @@ export const saveToPreviousItems = async (db, householdId, item) => {
       unit: item.unit || 'servings',
       minThreshold: item.minThreshold || 1,
       weeklyUsage: item.weeklyUsage || 0,
+      purchaseAmount: item.purchaseAmount || 1,
       note: item.note || '',
       lastUsed: new Date()
     }, { merge: true }); // merge: true to update if already exists
