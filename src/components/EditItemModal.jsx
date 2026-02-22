@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
+import { CATEGORIES } from '../utils/helpers';
 
 const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -111,13 +112,9 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   defaultValue={item.category} 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
                 >
-                  <option value="fruit">Fruit</option>
-                  <option value="veg">Vegetable</option>
-                  <option value="dairy">Dairy/Egg</option>
-                  <option value="meat">Meat</option>
-                  <option value="grain">Grain/Bread</option>
-                  <option value="condiment">Condiment</option>
-                  <option value="drink">Beverage</option>
+                  {CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.emoji} {cat.label}</option>
+                  ))}
                 </select>
               </div>
 

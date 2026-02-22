@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { CATEGORIES } from '../utils/helpers';
 
 const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShelf }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -124,13 +125,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
                 <select name="category" className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1">
-                  <option value="fruit">Fruit</option>
-                  <option value="veg">Vegetable</option>
-                  <option value="dairy">Dairy/Egg</option>
-                  <option value="meat">Meat</option>
-                  <option value="grain">Grain/Bread</option>
-                  <option value="condiment">Condiment</option>
-                  <option value="drink">Beverage</option>
+                  {CATEGORIES.map(cat => (
+                    <option key={cat.value} value={cat.value}>{cat.emoji} {cat.label}</option>
+                  ))}
                 </select>
               </div>
 

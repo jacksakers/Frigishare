@@ -3,7 +3,7 @@ import { Check, X, StickyNote, Edit, ArrowUpDown } from 'lucide-react';
 import { db } from '../firebase/config';
 import { collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { getCategoryEmoji, generateItemId } from '../utils/helpers';
+import { getCategoryEmoji, getCategoryLabel, getCategorySortOrder, CATEGORIES, generateItemId } from '../utils/helpers';
 import EditShoppingItemModal from './EditShoppingItemModal';
 
 const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
@@ -120,7 +120,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     let sorted = [...shoppingList];
     
     if (sortBy === 'category') {
-      const categoryOrder = ['dairy', 'produce', 'meat', 'grains', 'beverages', 'snacks', 'condiments', 'other'];
+      const categoryOrder = getCategorySortOrder();
       sorted.sort((a, b) => {
         const catA = categoryOrder.indexOf(a.category || 'other');
         const catB = categoryOrder.indexOf(b.category || 'other');
@@ -136,6 +136,36 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     return sorted;
   };
 
+  // Group items by category for display (only when sorted by category)
+  const getGroupedList = () => {
+    if (sortBy !== 'category') {
+      return [{ items: sortedList }];
+    }
+
+    const groups = [];
+    const categoryMap = new Map();
+
+    sortedList.forEach(item => {
+      const category = item.category || 'other';
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category).push(item);
+    });
+
+    // Create groups in the correct order
+    getCategorySortOrder().forEach(catValue => {
+      if (categoryMap.has(catValue) && categoryMap.get(catValue).length > 0) {
+        groups.push({
+          category: catValue,
+          items: categoryMap.get(catValue)
+        });
+      }
+    });
+
+    return groups;
+  };
+
   const cycleSortMode = () => {
     const modes = ['default', 'category', 'name'];
     const currentIndex = modes.indexOf(sortBy);
@@ -144,6 +174,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
   };
 
   const sortedList = getSortedList();
+  const groupedList = getGroupedList();
   const checkedCount = shoppingList.filter(item => item.checked).length;
 
   return (
@@ -184,8 +215,22 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
         </div>
 
         <div className="space-y-3">
-          {sortedList.map(item => (
-            <div key={item.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg group">
+          {groupedList.map((group, groupIndex) => (
+            <div key={group.category || `group-${groupIndex}`}>
+              {/* Category Header (only shown when sorted by category) */}
+              {group.category && sortBy === 'category' && (
+                <div className="flex items-center gap-2 mb-2 mt-4 first:mt-0">
+                  <span className="text-xl">{getCategoryEmoji(group.category)}</span>
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+                    {getCategoryLabel(group.category)}
+                  </h3>
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                </div>
+              )}
+              
+              {/* Items in this category/group */}
+              {group.items.map(item => (
+                <div key={item.id} className="flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg group">
               <button 
                 onClick={() => handleToggleChecked(item.id, item.checked, item)}
                 className={`w-6 h-6 rounded border-2 flex items-center justify-center transition flex-shrink-0 mt-0.5 ${item.checked ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}
@@ -232,7 +277,9 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
                 >
                   <X size={16}/>
                 </button>
+                </div>
               </div>
+              ))}
             </div>
           ))}
           {shoppingList.length === 0 && (

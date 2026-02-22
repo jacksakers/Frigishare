@@ -13,17 +13,28 @@ export const roundToHalf = (num) => {
   return Math.round(num * 2) / 2;
 };
 
-// Helper function for category emojis
+// ============================================
+// CATEGORY SYSTEM - Single Source of Truth
+// ============================================
+
+export const CATEGORIES = [
+  { value: 'dairy', label: 'Dairy', emoji: '🥛' },
+  { value: 'produce', label: 'Produce', emoji: '🥬' },
+  { value: 'meat', label: 'Meat', emoji: '🍖' },
+  { value: 'grains', label: 'Grains', emoji: '🌾' },
+  { value: 'beverages', label: 'Beverages', emoji: '🧃' },
+  { value: 'snacks', label: 'Snacks', emoji: '🍪' },
+  { value: 'condiments', label: 'Condiments', emoji: '🧂' },
+  { value: 'other', label: 'Other', emoji: '📦' }
+];
+
+// Get category emoji by value
 export const getCategoryEmoji = (cat) => {
+  const category = CATEGORIES.find(c => c.value === cat);
+  if (category) return category.emoji;
+  
+  // Legacy categories (for backward compatibility)
   switch(cat) {
-    case 'dairy': return '🥛';
-    case 'produce': return '🥬';
-    case 'meat': return '🍖';
-    case 'grains': return '🌾';
-    case 'beverages': return '🧃';
-    case 'snacks': return '🍪';
-    case 'condiments': return '🧂';
-    // Legacy categories (for backward compatibility)
     case 'fruit': return '🍎';
     case 'veg': return '🥕';
     case 'grain': return '🍞';
@@ -31,4 +42,15 @@ export const getCategoryEmoji = (cat) => {
     case 'condiment': return '🥫';
     default: return '📦';
   }
+};
+
+// Get category label by value
+export const getCategoryLabel = (cat) => {
+  const category = CATEGORIES.find(c => c.value === cat);
+  return category ? category.label : 'Other';
+};
+
+// Get the proper sort order for categories
+export const getCategorySortOrder = () => {
+  return CATEGORIES.map(c => c.value);
 };

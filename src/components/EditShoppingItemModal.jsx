@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Edit, X, StickyNote } from 'lucide-react';
+import { CATEGORIES } from '../utils/helpers';
 
 const EditShoppingItemModal = ({ item, isOpen, onClose, onUpdate }) => {
   const [name, setName] = useState(item?.name || '');
@@ -54,14 +55,9 @@ const EditShoppingItemModal = ({ item, isOpen, onClose, onUpdate }) => {
               onChange={(e) => setCategory(e.target.value)}
               className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              <option value="dairy">🥛 Dairy</option>
-              <option value="produce">🥬 Produce</option>
-              <option value="meat">🍖 Meat</option>
-              <option value="grains">🌾 Grains</option>
-              <option value="beverages">🧃 Beverages</option>
-              <option value="snacks">🍪 Snacks</option>
-              <option value="condiments">🧂 Condiments</option>
-              <option value="other">📦 Other</option>
+              {CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.emoji} {cat.label}</option>
+              ))}
             </select>
           </div>
 
