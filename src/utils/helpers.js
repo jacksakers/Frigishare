@@ -1,3 +1,5 @@
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+
 // Helper function to generate a consistent ID from item name
 // This ensures that "Greek Yogurt" always gets the same ID
 export const generateItemId = (name) => {
@@ -53,4 +55,52 @@ export const getCategoryLabel = (cat) => {
 // Get the proper sort order for categories
 export const getCategorySortOrder = () => {
   return CATEGORIES.map(c => c.value);
+};
+
+// ============================================
+// PREVIOUS ITEMS DATABASE HELPERS
+// ============================================
+
+// Save an item to the previous items database before deletion
+export const saveToPreviousItems = async (db, householdId, item) => {
+  if (!householdId || !item || !item.name) return;
+  
+  try {
+    const itemId = generateItemId(item.name);
+    const previousItemRef = doc(db, 'households', householdId, 'previous_items', itemId);
+    
+    // Save the item with all its properties as defaults
+    await setDoc(previousItemRef, {
+      name: item.name,
+      location: item.location || 'fridge',
+      subLocation: item.subLocation || 'Middle Shelf',
+      category: item.category || 'other',
+      unit: item.unit || 'servings',
+      minThreshold: item.minThreshold || 1,
+      weeklyUsage: item.weeklyUsage || 0,
+      note: item.note || '',
+      lastUsed: new Date()
+    }, { merge: true }); // merge: true to update if already exists
+  } catch (error) {
+    console.error('Error saving to previous items:', error);
+  }
+};
+
+// Get a previous item by name
+export const getPreviousItem = async (db, householdId, itemName) => {
+  if (!householdId || !itemName) return null;
+  
+  try {
+    const itemId = generateItemId(itemName);
+    const previousItemRef = doc(db, 'households', householdId, 'previous_items', itemId);
+    const docSnap = await getDoc(previousItemRef);
+    
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting previous item:', error);
+    return null;
+  }
 };

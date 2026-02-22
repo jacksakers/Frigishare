@@ -3,7 +3,7 @@ import { Check, X, StickyNote, Edit, ArrowUpDown } from 'lucide-react';
 import { db } from '../firebase/config';
 import { collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { getCategoryEmoji, getCategoryLabel, getCategorySortOrder, CATEGORIES, generateItemId } from '../utils/helpers';
+import { getCategoryEmoji, getCategoryLabel, getCategorySortOrder, CATEGORIES, generateItemId, saveToPreviousItems, getPreviousItem } from '../utils/helpers';
 import EditShoppingItemModal from './EditShoppingItemModal';
 
 const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
@@ -28,17 +28,20 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
             qty: Math.max(0, existingData.qty + 1)
           });
         } else {
-          // New item, add to middle shelf in fridge
+          // Check for previous item data to get better defaults
+          const previousItem = await getPreviousItem(db, householdId, item.name);
+          
+          // New item, add to fridge with saved location or default to middle shelf
           await setDoc(itemRef, {
             name: item.name,
-            location: 'fridge',
-            subLocation: 'Middle Shelf',
-            category: item.category || 'other',
+            location: previousItem?.location || 'fridge',
+            subLocation: previousItem?.subLocation || 'Middle Shelf',
+            category: item.category || previousItem?.category || 'other',
             qty: 1,
-            unit: 'servings',
-            weeklyUsage: 0,
-            minThreshold: 1,
-            note: item.note || ''
+            unit: previousItem?.unit || 'servings',
+            weeklyUsage: previousItem?.weeklyUsage || 0,
+            minThreshold: previousItem?.minThreshold || 1,
+            note: item.note || previousItem?.note || ''
           });
         }
         
@@ -59,6 +62,12 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     if (!householdId) return;
     
     try {
+      // Save to previous items before deleting
+      const itemToDelete = shoppingList.find(item => item.id === id);
+      if (itemToDelete) {
+        await saveToPreviousItems(db, householdId, itemToDelete);
+      }
+      
       const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
       await deleteDoc(itemRef);
     } catch (error) {
@@ -72,6 +81,9 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     try {
       const checkedItems = shoppingList.filter(item => item.checked);
       for (const item of checkedItems) {
+        // Save to previous items before deleting
+        await saveToPreviousItems(db, householdId, item);
+        
         const itemRef = doc(db, 'households', householdId, 'shopping_list', item.id);
         await deleteDoc(itemRef);
       }
@@ -101,13 +113,18 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
       if (!householdId) return;
 
       try {
+        const itemName = e.currentTarget.value;
+        
+        // Check if we have this item in previous items
+        const previousItem = await getPreviousItem(db, householdId, itemName);
+        
         const shoppingRef = collection(db, 'households', householdId, 'shopping_list');
         await addDoc(shoppingRef, {
-          name: e.currentTarget.value,
+          name: itemName,
           checked: false,
           autoAdded: false,
-          category: 'other',
-          note: ''
+          category: previousItem?.category || 'other',
+          note: previousItem?.note || ''
         });
         e.currentTarget.value = '';
       } catch (error) {

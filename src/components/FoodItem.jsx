@@ -5,7 +5,7 @@ import { getCategoryEmoji } from '../utils/helpers';
 // The Food Item Card Component
 const FoodItem = ({ item, onEdit }) => {
   const isOutOfStock = item.qty === 0;
-  const isLow = item.qty <= item.minThreshold && item.qty > 0;
+  const isLow = item.qty < item.minThreshold && item.qty > 0;
 
   return (
     <div 

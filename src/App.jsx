@@ -13,7 +13,7 @@ import AddItemModal from './components/AddItemModal';
 import EditItemModal from './components/EditItemModal';
 import ConsumptionModal from './components/ConsumptionModal';
 import ShoppingListView from './components/ShoppingListView';
-import { generateItemId, roundToHalf } from './utils/helpers';
+import { generateItemId, roundToHalf, saveToPreviousItems } from './utils/helpers';
 
 export default function App() {
   const { currentUser, householdId } = useAuth();
@@ -150,7 +150,7 @@ function MainApp() {
     if (!householdId || inventory.length === 0) return;
 
     // Whenever inventory changes, check for low stock
-    const lowItems = inventory.filter(i => i.qty <= i.minThreshold);
+    const lowItems = inventory.filter(i => i.qty < i.minThreshold);
     
     // Check each low item against current shopping list
     lowItems.forEach(async (item) => {
@@ -171,6 +171,23 @@ function MainApp() {
           });
         } catch (error) {
           console.error('Error adding to shopping list:', error);
+        }
+      }
+    });
+    
+    // Remove auto-added items from shopping list if inventory is now above threshold
+    const adequateItems = inventory.filter(i => i.qty >= i.minThreshold);
+    adequateItems.forEach(async (item) => {
+      const listItem = shoppingList.find(
+        li => li.name.toLowerCase() === item.name.toLowerCase() && li.autoAdded && !li.checked
+      );
+      
+      if (listItem) {
+        try {
+          const itemRef = doc(db, 'households', householdId, 'shopping_list', listItem.id);
+          await deleteDoc(itemRef);
+        } catch (error) {
+          console.error('Error removing from shopping list:', error);
         }
       }
     });
@@ -282,7 +299,7 @@ function MainApp() {
       name: formData.get('name'),
       location: formData.get('location') || editingItem.location,
       subLocation: formData.get('subLocation'),
-      category: formData.get('category'),
+      category: formData.get('category') || editingItem.category || 'other',
       qty: Math.max(0, roundToHalf(parseFloat(formData.get('qty')))),
       unit: formData.get('unit'),
       weeklyUsage: Math.max(0, roundToHalf(parseFloat(formData.get('weeklyUsage') || 0))),
@@ -303,6 +320,12 @@ function MainApp() {
     if (!householdId) return;
 
     try {
+      // Save to previous items before deleting
+      const itemToDelete = inventory.find(item => item.id === id);
+      if (itemToDelete) {
+        await saveToPreviousItems(db, householdId, itemToDelete);
+      }
+      
       const itemRef = doc(db, 'households', householdId, 'items', id);
       await deleteDoc(itemRef);
       setEditingItem(null);

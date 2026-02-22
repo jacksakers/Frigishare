@@ -37,6 +37,12 @@ service cloud.firestore {
         // Allow full CRUD if user is a household member
         allow read, write: if isMember(householdId);
       }
+      
+      // Previous items sub-collection (for remembering deleted items)
+      match /previous_items/{itemId} {
+        // Allow full CRUD if user is a household member
+        allow read, write: if isMember(householdId);
+      }
     }
   }
 }

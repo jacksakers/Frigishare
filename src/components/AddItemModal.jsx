@@ -1,9 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import { CATEGORIES } from '../utils/helpers';
+import { CATEGORIES, getPreviousItem } from '../utils/helpers';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase/config';
 
 const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShelf }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [itemName, setItemName] = useState('');
+  const [previousItemData, setPreviousItemData] = useState(null);
+  const { householdId } = useAuth();
+  
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setItemName('');
+      setPreviousItemData(null);
+      setShowAdvanced(false);
+    }
+  }, [isOpen]);
+  
+  // Check for previous item when name changes
+  const handleNameChange = async (e) => {
+    const name = e.target.value;
+    setItemName(name);
+    
+    if (name.trim().length > 2) {
+      const previous = await getPreviousItem(db, householdId, name);
+      if (previous) {
+        setPreviousItemData(previous);
+      } else {
+        setPreviousItemData(null);
+      }
+    } else {
+      setPreviousItemData(null);
+    }
+  };
   
   if (!isOpen) return null;
 
@@ -21,10 +52,17 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
               <label className="text-xs font-bold text-slate-500 uppercase">Item Name</label>
               <input 
                 required 
-                name="name" 
+                name="name"
+                value={itemName}
+                onChange={handleNameChange}
                 className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
                 placeholder="e.g. Greek Yogurt" 
               />
+              {previousItemData && (
+                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                  <span>✓</span> Found in history - defaults loaded
+                </p>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -45,6 +83,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                 <select 
                   name="unit" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
+                  defaultValue={previousItemData?.unit || "servings"}
+                  key={previousItemData?.unit || "default"}
                 >
                   <option value="servings">servings</option>
                   <option value="count">count</option>
@@ -63,7 +103,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
               <select 
                 name="subLocation" 
                 className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
-                defaultValue={selectedShelf || (currentLocation === 'fridge' ? 'Middle Shelf' : 'Top Shelf')}
+                defaultValue={previousItemData?.subLocation || selectedShelf || (currentLocation === 'fridge' ? 'Middle Shelf' : 'Top Shelf')}
+                key={previousItemData ? `subloc-${previousItemData.subLocation}` : 'default-subloc'}
               >
                 {currentLocation === 'fridge' ? (
                   <>
@@ -104,8 +145,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                       type="radio" 
                       name="location" 
                       value="fridge" 
-                      defaultChecked={currentLocation === 'fridge'}
+                      defaultChecked={(previousItemData?.location || currentLocation) === 'fridge'}
                       className="mr-2"
+                      key={previousItemData ? `loc-fridge-${previousItemData.location}` : 'default-loc-fridge'}
                     />
                     <span className="text-sm">Fridge</span>
                   </label>
@@ -114,8 +156,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                       type="radio" 
                       name="location" 
                       value="pantry" 
-                      defaultChecked={currentLocation === 'pantry'}
+                      defaultChecked={(previousItemData?.location || currentLocation) === 'pantry'}
                       className="mr-2"
+                      key={previousItemData ? `loc-pantry-${previousItemData.location}` : 'default-loc-pantry'}
                     />
                     <span className="text-sm">Pantry</span>
                   </label>
@@ -124,7 +167,12 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
-                <select name="category" className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1">
+                <select 
+                  name="category" 
+                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
+                  defaultValue={previousItemData?.category || 'other'}
+                  key={previousItemData?.category || 'default-cat'}
+                >
                   {CATEGORIES.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.emoji} {cat.label}</option>
                   ))}
@@ -141,7 +189,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   type="number" 
                   step="0.5" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                  defaultValue="0" 
+                  defaultValue={previousItemData?.weeklyUsage || "0"}
+                  key={previousItemData ? `weekly-${previousItemData.weeklyUsage}` : 'default-weekly'}
                 />
               </div>
 
@@ -152,7 +201,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   type="number" 
                   step="0.5" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                  defaultValue="1" 
+                  defaultValue={previousItemData?.minThreshold || "1"}
+                  key={previousItemData ? `threshold-${previousItemData.minThreshold}` : 'default-threshold'}
                 />
               </div>
 
@@ -161,7 +211,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                 <input 
                   name="note" 
                   className="w-full p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mt-1" 
-                  placeholder="e.g. For Jerry" 
+                  placeholder="e.g. For Jerry"
+                  defaultValue={previousItemData?.note || ""}
+                  key={previousItemData ? `note-${previousItemData.note}` : 'default-note'}
                 />
               </div>
             </div>
