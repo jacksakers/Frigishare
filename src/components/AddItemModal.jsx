@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import { CATEGORIES, getPreviousItem } from '../utils/helpers';
+import { X, ChevronDown, ChevronUp, Plus, Minus } from 'lucide-react';
+import { CATEGORIES, getPreviousItem, roundToHalf } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../firebase/config';
 
@@ -8,6 +8,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [itemName, setItemName] = useState('');
   const [previousItemData, setPreviousItemData] = useState(null);
+  const [qty, setQty] = useState(1);
+  const [weeklyUsage, setWeeklyUsage] = useState(0);
+  const [minThreshold, setMinThreshold] = useState(1);
   const { householdId } = useAuth();
   
   // Reset state when modal closes
@@ -16,8 +19,19 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
       setItemName('');
       setPreviousItemData(null);
       setShowAdvanced(false);
+      setQty(1);
+      setWeeklyUsage(0);
+      setMinThreshold(1);
     }
   }, [isOpen]);
+  
+  // Update values when previous item data is loaded
+  useEffect(() => {
+    if (previousItemData) {
+      setWeeklyUsage(previousItemData.weeklyUsage || 0);
+      setMinThreshold(previousItemData.minThreshold || 1);
+    }
+  }, [previousItemData]);
   
   // Check for previous item when name changes
   const handleNameChange = async (e) => {
@@ -68,15 +82,26 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Quantity</label>
-                <input 
-                  required 
-                  name="qty" 
-                  type="number" 
-                  step="0.5" 
-                  min="0"
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                  defaultValue="1" 
-                />
+                <input type="hidden" name="qty" value={qty} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setQty(Math.max(0, roundToHalf(qty - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{qty}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setQty(roundToHalf(qty + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Unit</label>
@@ -184,26 +209,50 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   <span>Weekly Consumption</span>
                   <span className="text-slate-400 font-normal normal-case">How much you use/week</span>
                 </label>
-                <input 
-                  name="weeklyUsage" 
-                  type="number" 
-                  step="0.5" 
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                  defaultValue={previousItemData?.weeklyUsage || "0"}
-                  key={previousItemData ? `weekly-${previousItemData.weeklyUsage}` : 'default-weekly'}
-                />
+                <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setWeeklyUsage(Math.max(0, roundToHalf(weeklyUsage - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{weeklyUsage}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setWeeklyUsage(roundToHalf(weeklyUsage + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Min Threshold</label>
-                <input 
-                  name="minThreshold" 
-                  type="number" 
-                  step="0.5" 
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                  defaultValue={previousItemData?.minThreshold || "1"}
-                  key={previousItemData ? `threshold-${previousItemData.minThreshold}` : 'default-threshold'}
-                />
+                <input type="hidden" name="minThreshold" value={minThreshold} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setMinThreshold(Math.max(0, roundToHalf(minThreshold - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{minThreshold}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setMinThreshold(roundToHalf(minThreshold + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
 
               <div>

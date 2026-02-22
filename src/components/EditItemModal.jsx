@@ -1,11 +1,44 @@
-import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
-import { CATEGORIES } from '../utils/helpers';
+import React, { useState, useEffect } from 'react';
+import { X, ChevronDown, ChevronUp, ShoppingCart, Plus, Minus } from 'lucide-react';
+import { CATEGORIES, roundToHalf } from '../utils/helpers';
 
 const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [qty, setQty] = useState(0);
+  const [weeklyUsage, setWeeklyUsage] = useState(0);
+  const [minThreshold, setMinThreshold] = useState(0);
+  
+  // Update state when item changes
+  useEffect(() => {
+    if (item) {
+      setQty(item.qty || 0);
+      setWeeklyUsage(item.weeklyUsage || 0);
+      setMinThreshold(item.minThreshold || 0);
+    }
+  }, [item]);
   
   if (!item) return null;
+
+  const handleSubmitWithState = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    formData.set('qty', qty.toString());
+    formData.set('weeklyUsage', weeklyUsage.toString());
+    formData.set('minThreshold', minThreshold.toString());
+    
+    // Create a new event with the updated form data
+    const newEvent = {
+      ...e,
+      target: e.target,
+      preventDefault: () => {}
+    };
+    Object.defineProperty(newEvent.target, 'elements', {
+      value: e.target.elements,
+      writable: false
+    });
+    
+    onSubmit(e);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -14,7 +47,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
           <h3 className="font-bold text-lg">Edit {item.name}</h3>
           <button onClick={onClose}><X/></button>
         </div>
-        <form onSubmit={onSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmitWithState} className="p-4 space-y-4">
           {/* Main Fields */}
           <div className="space-y-4">
             <div>
@@ -30,15 +63,26 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Quantity</label>
-                <input 
-                  required 
-                  name="qty" 
-                  type="number" 
-                  step="0.5" 
-                  min="0"
-                  defaultValue={item.qty} 
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                />
+                <input type="hidden" name="qty" value={qty} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setQty(Math.max(0, roundToHalf(qty - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{qty}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setQty(roundToHalf(qty + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Unit</label>
@@ -123,24 +167,50 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   <span>Weekly Consumption</span>
                   <span className="text-slate-400 font-normal normal-case">How much you use/week</span>
                 </label>
-                <input 
-                  name="weeklyUsage" 
-                  type="number" 
-                  step="0.5" 
-                  defaultValue={item.weeklyUsage} 
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                />
+                <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setWeeklyUsage(Math.max(0, roundToHalf(weeklyUsage - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{weeklyUsage}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setWeeklyUsage(roundToHalf(weeklyUsage + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Min Threshold</label>
-                <input 
-                  name="minThreshold" 
-                  type="number" 
-                  step="0.5" 
-                  defaultValue={item.minThreshold} 
-                  className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
-                />
+                <input type="hidden" name="minThreshold" value={minThreshold} />
+                <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
+                  <button 
+                    type="button"
+                    onClick={() => setMinThreshold(Math.max(0, roundToHalf(minThreshold - 0.5)))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  
+                  <span className="text-lg font-bold text-slate-700">{minThreshold}</span>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => setMinThreshold(roundToHalf(minThreshold + 0.5))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
 
               <div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingBag, X } from 'lucide-react';
-import { CATEGORIES } from '../utils/helpers';
+import { ShoppingBag, X, Plus, Minus } from 'lucide-react';
+import { CATEGORIES, roundToHalf } from '../utils/helpers';
 
 const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
   const [location, setLocation] = useState('fridge');
@@ -53,15 +53,25 @@ const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-bold text-slate-600 mb-2">Quantity</label>
-              <input 
-                type="number" 
-                step="0.5"
-                min="0"
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
-                required
-              />
+              <div className="flex items-center justify-between border border-slate-300 rounded-lg p-2">
+                <button 
+                  type="button"
+                  onClick={() => setQty(Math.max(0, roundToHalf(parseFloat(qty) - 0.5)))}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                >
+                  <Minus size={16} />
+                </button>
+                
+                <span className="text-lg font-bold text-slate-700">{qty}</span>
+                
+                <button 
+                  type="button"
+                  onClick={() => setQty(roundToHalf(parseFloat(qty) + 0.5))}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-600 mb-2">Unit</label>
