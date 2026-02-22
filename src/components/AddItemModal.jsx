@@ -11,6 +11,9 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
   const [qty, setQty] = useState(1);
   const [weeklyUsage, setWeeklyUsage] = useState(0);
   const [minThreshold, setMinThreshold] = useState(1);
+  const [location, setLocation] = useState(currentLocation || 'fridge');
+  const [category, setCategory] = useState('other');
+  const [note, setNote] = useState('');
   const { householdId } = useAuth();
   
   // Reset state when modal closes
@@ -22,16 +25,22 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
       setQty(1);
       setWeeklyUsage(0);
       setMinThreshold(1);
+      setLocation(currentLocation || 'fridge');
+      setCategory('other');
+      setNote('');
     }
-  }, [isOpen]);
+  }, [isOpen, currentLocation]);
   
   // Update values when previous item data is loaded
   useEffect(() => {
     if (previousItemData) {
       setWeeklyUsage(previousItemData.weeklyUsage || 0);
       setMinThreshold(previousItemData.minThreshold || 1);
+      setCategory(previousItemData.category || 'other');
+      setNote(previousItemData.note || '');
+      setLocation(previousItemData.location || currentLocation || 'fridge');
     }
-  }, [previousItemData]);
+  }, [previousItemData, currentLocation]);
   
   // Check for previous item when name changes
   const handleNameChange = async (e) => {
@@ -60,6 +69,13 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
           <button onClick={onClose}><X/></button>
         </div>
         <form onSubmit={onSubmit} className="p-4 space-y-4">
+          {/* Hidden inputs to preserve state values when Advanced Settings is closed */}
+          <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
+          <input type="hidden" name="minThreshold" value={minThreshold} />
+          <input type="hidden" name="location" value={location} />
+          <input type="hidden" name="category" value={category} />
+          <input type="hidden" name="note" value={note} />
+          
           {/* Main Fields */}
           <div className="space-y-4">
             <div>
@@ -168,22 +184,18 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   <label className="flex-1 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 flex items-center">
                     <input 
                       type="radio" 
-                      name="location" 
-                      value="fridge" 
-                      defaultChecked={(previousItemData?.location || currentLocation) === 'fridge'}
+                      checked={location === 'fridge'}
+                      onChange={() => setLocation('fridge')}
                       className="mr-2"
-                      key={previousItemData ? `loc-fridge-${previousItemData.location}` : 'default-loc-fridge'}
                     />
                     <span className="text-sm">Fridge</span>
                   </label>
                   <label className="flex-1 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 flex items-center">
                     <input 
                       type="radio" 
-                      name="location" 
-                      value="pantry" 
-                      defaultChecked={(previousItemData?.location || currentLocation) === 'pantry'}
+                      checked={location === 'pantry'}
+                      onChange={() => setLocation('pantry')}
                       className="mr-2"
-                      key={previousItemData ? `loc-pantry-${previousItemData.location}` : 'default-loc-pantry'}
                     />
                     <span className="text-sm">Pantry</span>
                   </label>
@@ -195,8 +207,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                 <select 
                   name="category" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
-                  defaultValue={previousItemData?.category || 'other'}
-                  key={previousItemData?.category || 'default-cat'}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                 >
                   {CATEGORIES.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.emoji} {cat.label}</option>
@@ -209,7 +221,6 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   <span>Weekly Consumption</span>
                   <span className="text-slate-400 font-normal normal-case">How much you use/week</span>
                 </label>
-                <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
                 <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
                   <button 
                     type="button"
@@ -233,7 +244,6 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Min Threshold</label>
-                <input type="hidden" name="minThreshold" value={minThreshold} />
                 <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
                   <button 
                     type="button"
@@ -261,8 +271,8 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShel
                   name="note" 
                   className="w-full p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mt-1" 
                   placeholder="e.g. For Jerry"
-                  defaultValue={previousItemData?.note || ""}
-                  key={previousItemData ? `note-${previousItemData.note}` : 'default-note'}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
                 />
               </div>
             </div>

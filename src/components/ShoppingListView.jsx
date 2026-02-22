@@ -15,6 +15,17 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     if (!householdId) return;
     
     try {
+      // First, verify the shopping list item exists
+      const shoppingItemRef = doc(db, 'households', householdId, 'shopping_list', id);
+      const shoppingItemDoc = await getDoc(shoppingItemRef);
+      
+      // If the shopping item doesn't exist, remove it from local state
+      if (!shoppingItemDoc.exists()) {
+        console.warn('Shopping list item no longer exists in Firestore, removing from local state');
+        setShoppingList(prev => prev.filter(item => item.id !== id));
+        return;
+      }
+      
       // If checking the item (buying it), add to fridge automatically and mark as checked
       if (!currentChecked) {
         const itemId = generateItemId(item.name);
@@ -46,15 +57,18 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
         }
         
         // Mark as checked in shopping list
-        const shoppingItemRef = doc(db, 'households', householdId, 'shopping_list', id);
         await updateDoc(shoppingItemRef, { checked: true });
       } else {
         // Unchecking - just update the checked status
-        const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
-        await updateDoc(itemRef, { checked: false });
+        await updateDoc(shoppingItemRef, { checked: false });
       }
     } catch (error) {
       console.error('Error toggling item:', error);
+      // If the error is about a missing document, clean up local state
+      if (error.code === 'not-found') {
+        console.warn('Document not found, removing from local state');
+        setShoppingList(prev => prev.filter(item => item.id !== id));
+      }
     }
   };
 
@@ -69,9 +83,22 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
       }
       
       const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
-      await deleteDoc(itemRef);
+      const docSnap = await getDoc(itemRef);
+      
+      // Only try to delete if it exists
+      if (docSnap.exists()) {
+        await deleteDoc(itemRef);
+      } else {
+        // Document doesn't exist, just clean up local state
+        console.warn('Shopping list item already deleted, updating local state');
+        setShoppingList(prev => prev.filter(item => item.id !== id));
+      }
     } catch (error) {
       console.error('Error removing item:', error);
+      // Clean up local state even if there's an error
+      if (error.code === 'not-found') {
+        setShoppingList(prev => prev.filter(item => item.id !== id));
+      }
     }
   };
 
@@ -81,11 +108,21 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     try {
       const checkedItems = shoppingList.filter(item => item.checked);
       for (const item of checkedItems) {
-        // Save to previous items before deleting
-        await saveToPreviousItems(db, householdId, item);
-        
-        const itemRef = doc(db, 'households', householdId, 'shopping_list', item.id);
-        await deleteDoc(itemRef);
+        try {
+          // Save to previous items before deleting
+          await saveToPreviousItems(db, householdId, item);
+          
+          const itemRef = doc(db, 'households', householdId, 'shopping_list', item.id);
+          const docSnap = await getDoc(itemRef);
+          
+          // Only delete if it exists
+          if (docSnap.exists()) {
+            await deleteDoc(itemRef);
+          }
+        } catch (itemError) {
+          console.warn(`Could not delete item ${item.id}:`, itemError);
+          // Continue with other items
+        }
       }
     } catch (error) {
       console.error('Error clearing checked items:', error);
@@ -97,6 +134,15 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     
     try {
       const itemRef = doc(db, 'households', householdId, 'shopping_list', updatedItem.id);
+      const docSnap = await getDoc(itemRef);
+      
+      if (!docSnap.exists()) {
+        console.warn('Shopping list item no longer exists, removing from local state');
+        setShoppingList(prev => prev.filter(item => item.id !== updatedItem.id));
+        setEditingItem(null);
+        return;
+      }
+      
       await updateDoc(itemRef, {
         name: updatedItem.name,
         category: updatedItem.category,
@@ -105,6 +151,10 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
       setEditingItem(null);
     } catch (error) {
       console.error('Error updating item:', error);
+      if (error.code === 'not-found') {
+        setShoppingList(prev => prev.filter(item => item.id !== updatedItem.id));
+        setEditingItem(null);
+      }
     }
   };
 

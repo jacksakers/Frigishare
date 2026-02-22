@@ -309,10 +309,21 @@ function MainApp() {
     
     try {
       const itemRef = doc(db, 'households', householdId, 'items', editingItem.id);
+      const docSnap = await getDoc(itemRef);
+      
+      if (!docSnap.exists()) {
+        console.warn('Item no longer exists in Firestore, closing modal');
+        setEditingItem(null);
+        return;
+      }
+      
       await updateDoc(itemRef, updatedData);
       setEditingItem(null);
     } catch (error) {
       console.error('Error updating item:', error);
+      if (error.code === 'not-found') {
+        setEditingItem(null);
+      }
     }
   };
 
@@ -327,10 +338,18 @@ function MainApp() {
       }
       
       const itemRef = doc(db, 'households', householdId, 'items', id);
-      await deleteDoc(itemRef);
+      const docSnap = await getDoc(itemRef);
+      
+      if (docSnap.exists()) {
+        await deleteDoc(itemRef);
+      } else {
+        console.warn('Item already deleted');
+      }
+      
       setEditingItem(null);
     } catch (error) {
       console.error('Error deleting item:', error);
+      setEditingItem(null);
     }
   };
 

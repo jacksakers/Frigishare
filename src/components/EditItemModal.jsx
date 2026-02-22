@@ -7,6 +7,9 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
   const [qty, setQty] = useState(0);
   const [weeklyUsage, setWeeklyUsage] = useState(0);
   const [minThreshold, setMinThreshold] = useState(0);
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [note, setNote] = useState('');
   
   // Update state when item changes
   useEffect(() => {
@@ -14,6 +17,9 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
       setQty(item.qty || 0);
       setWeeklyUsage(item.weeklyUsage || 0);
       setMinThreshold(item.minThreshold || 0);
+      setLocation(item.location || 'fridge');
+      setCategory(item.category || 'other');
+      setNote(item.note || '');
     }
   }, [item]);
   
@@ -25,6 +31,9 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
     formData.set('qty', qty.toString());
     formData.set('weeklyUsage', weeklyUsage.toString());
     formData.set('minThreshold', minThreshold.toString());
+    formData.set('location', location);
+    formData.set('category', category);
+    formData.set('note', note);
     
     // Create a new event with the updated form data
     const newEvent = {
@@ -48,6 +57,14 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
           <button onClick={onClose}><X/></button>
         </div>
         <form onSubmit={handleSubmitWithState} className="p-4 space-y-4">
+          {/* Hidden inputs for state-managed values */}
+          <input type="hidden" name="qty" value={qty} />
+          <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
+          <input type="hidden" name="minThreshold" value={minThreshold} />
+          <input type="hidden" name="location" value={location} />
+          <input type="hidden" name="category" value={category} />
+          <input type="hidden" name="note" value={note} />
+          
           {/* Main Fields */}
           <div className="space-y-4">
             <div>
@@ -63,7 +80,6 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Quantity</label>
-                <input type="hidden" name="qty" value={qty} />
                 <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
                   <button 
                     type="button"
@@ -129,9 +145,8 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   <label className="flex-1 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 flex items-center">
                     <input 
                       type="radio" 
-                      name="location" 
-                      value="fridge" 
-                      defaultChecked={item.location === 'fridge'}
+                      checked={location === 'fridge'}
+                      onChange={() => setLocation('fridge')}
                       className="mr-2"
                     />
                     <span className="text-sm">Fridge</span>
@@ -139,9 +154,8 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   <label className="flex-1 p-2 border border-slate-200 rounded cursor-pointer hover:bg-slate-50 flex items-center">
                     <input 
                       type="radio" 
-                      name="location" 
-                      value="pantry" 
-                      defaultChecked={item.location === 'pantry'}
+                      checked={location === 'pantry'}
+                      onChange={() => setLocation('pantry')}
                       className="mr-2"
                     />
                     <span className="text-sm">Pantry</span>
@@ -153,7 +167,8 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                 <label className="text-xs font-bold text-slate-500 uppercase">Category</label>
                 <select 
                   name="category" 
-                  defaultValue={item.category} 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
                 >
                   {CATEGORIES.map(cat => (
@@ -167,7 +182,6 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                   <span>Weekly Consumption</span>
                   <span className="text-slate-400 font-normal normal-case">How much you use/week</span>
                 </label>
-                <input type="hidden" name="weeklyUsage" value={weeklyUsage} />
                 <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
                   <button 
                     type="button"
@@ -191,7 +205,6 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
 
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Min Threshold</label>
-                <input type="hidden" name="minThreshold" value={minThreshold} />
                 <div className="flex items-center justify-between bg-slate-50 rounded border border-slate-200 p-2 mt-1">
                   <button 
                     type="button"
@@ -217,7 +230,8 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
                 <label className="text-xs font-bold text-slate-500 uppercase">Sticky Note</label>
                 <input 
                   name="note" 
-                  defaultValue={item.note} 
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
                   className="w-full p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mt-1" 
                   placeholder="e.g. For Jerry" 
                 />
