@@ -12,7 +12,7 @@ const Header = ({ onSimulateWeek }) => {
           <Refrigerator size={24} />
         </div>
         <div>
-          <h1 className="font-bold text-xl tracking-tight text-slate-700">FridgeSync</h1>
+          <h1 className="font-bold text-xl tracking-tight text-slate-700">Frigishare</h1>
           {householdId && (
             <p className="text-xs text-slate-400 flex items-center gap-1">
               <Users size={12} />

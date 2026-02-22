@@ -49,7 +49,7 @@ const AuthPage = () => {
           <div className="inline-block bg-white/20 p-4 rounded-2xl mb-4">
             <Refrigerator size={48} />
           </div>
-          <h1 className="text-3xl font-bold mb-2">FridgeSync</h1>
+          <h1 className="text-3xl font-bold mb-2">Frigishare</h1>
           <p className="text-emerald-100 text-sm">Manage your family's kitchen together</p>
         </div>
 

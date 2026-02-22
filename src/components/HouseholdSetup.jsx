@@ -84,7 +84,7 @@ const HouseholdSetup = () => {
             onClick={() => window.location.reload()}
             className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition"
           >
-            Continue to FridgeSync
+            Continue to Frigishare
           </button>
         </div>
       </div>

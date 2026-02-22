@@ -230,7 +230,7 @@ export default function App() {
           <div className="bg-emerald-500 p-2 rounded-lg text-white">
             <Refrigerator size={24} />
           </div>
-          <h1 className="font-bold text-xl tracking-tight text-slate-700">FridgeSync</h1>
+          <h1 className="font-bold text-xl tracking-tight text-slate-700">Frigishare</h1>
         </div>
         
         {/* Sim Button for Demo */}

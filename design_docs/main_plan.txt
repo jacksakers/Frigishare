@@ -2,7 +2,7 @@ Design Document: The Family Fridge Tracker
 
 1. Executive Summary
 
-Project Name: FridgeSync (Working Title)
+Project Name: Frigishare (Working Title)
 Goal: A collaborative inventory management system for households that visualizes fridge and pantry contents, automates shopping lists based on usage rates, and allows for family coordination.
 Core Vibe: Skeuomorphic, tactile, "Kitchen-Fresh," easy-to-use.
 
