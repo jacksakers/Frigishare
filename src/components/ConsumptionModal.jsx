@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Plus, Minus } from 'lucide-react';
+import { roundToHalf } from '../utils/helpers';
 
 const ConsumptionModal = ({ isOpen, onClose, onConfirm, consumptionItems, daysSinceLastCheckIn }) => {
   const [adjustedItems, setAdjustedItems] = useState([]);
@@ -17,7 +18,7 @@ const ConsumptionModal = ({ isOpen, onClose, onConfirm, consumptionItems, daysSi
       prev.map(item => {
         if (item.id === itemId) {
           const newUsage = Math.max(0, Math.min(item.qty, item.actualUsage + delta));
-          return { ...item, actualUsage: Math.round(newUsage * 100) / 100 };
+          return { ...item, actualUsage: roundToHalf(newUsage) };
         }
         return item;
       })

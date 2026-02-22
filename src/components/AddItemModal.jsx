@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
 
-const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation }) => {
+const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation, selectedShelf }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   if (!isOpen) return null;
@@ -33,7 +33,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation }) => {
                   required 
                   name="qty" 
                   type="number" 
-                  step="0.1" 
+                  step="0.5" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
                   defaultValue="1" 
                 />
@@ -44,6 +44,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation }) => {
                   name="unit" 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
                 >
+                  <option value="servings">servings</option>
                   <option value="count">count</option>
                   <option value="oz">oz</option>
                   <option value="lbs">lbs</option>
@@ -60,7 +61,7 @@ const AddItemModal = ({ isOpen, onClose, onSubmit, currentLocation }) => {
               <select 
                 name="subLocation" 
                 className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1"
-                defaultValue={currentLocation === 'fridge' ? 'Middle Shelf' : 'Top Shelf'}
+                defaultValue={selectedShelf || (currentLocation === 'fridge' ? 'Middle Shelf' : 'Top Shelf')}
               >
                 {currentLocation === 'fridge' ? (
                   <>

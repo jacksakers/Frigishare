@@ -15,7 +15,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
     if (!householdId) return;
     
     try {
-      // If checking the item (buying it), add to fridge automatically
+      // If checking the item (buying it), add to fridge automatically and mark as checked
       if (!currentChecked) {
         const itemId = generateItemId(item.name);
         const itemRef = doc(db, 'households', householdId, 'items', itemId);
@@ -35,16 +35,16 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
             subLocation: 'Middle Shelf',
             category: item.category || 'other',
             qty: 1,
-            unit: 'count',
+            unit: 'servings',
             weeklyUsage: 0,
             minThreshold: 1,
             note: item.note || ''
           });
         }
         
-        // Remove from shopping list
+        // Mark as checked in shopping list
         const shoppingItemRef = doc(db, 'households', householdId, 'shopping_list', id);
-        await deleteDoc(shoppingItemRef);
+        await updateDoc(shoppingItemRef, { checked: true });
       } else {
         // Unchecking - just update the checked status
         const itemRef = doc(db, 'households', householdId, 'shopping_list', id);
@@ -63,6 +63,20 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
       await deleteDoc(itemRef);
     } catch (error) {
       console.error('Error removing item:', error);
+    }
+  };
+
+  const handleClearChecked = async () => {
+    if (!householdId) return;
+    
+    try {
+      const checkedItems = shoppingList.filter(item => item.checked);
+      for (const item of checkedItems) {
+        const itemRef = doc(db, 'households', householdId, 'shopping_list', item.id);
+        await deleteDoc(itemRef);
+      }
+    } catch (error) {
+      console.error('Error clearing checked items:', error);
     }
   };
 
@@ -130,6 +144,7 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
   };
 
   const sortedList = getSortedList();
+  const checkedCount = shoppingList.filter(item => item.checked).length;
 
   return (
     <>
@@ -145,16 +160,27 @@ const ShoppingListView = ({ shoppingList, setShoppingList, onAddToFridge }) => {
           <h2 className="text-2xl font-handwriting text-slate-600">
             Shopping List
           </h2>
-          <button 
-            onClick={cycleSortMode}
-            className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full text-slate-600"
-            title="Sort by"
-          >
-            <ArrowUpDown size={12} />
-            {sortBy === 'category' && 'By Category'}
-            {sortBy === 'name' && 'A-Z'}
-            {sortBy === 'default' && 'Default'}
-          </button>
+          <div className="flex items-center gap-2">
+            {checkedCount > 0 && (
+              <button 
+                onClick={handleClearChecked}
+                className="text-xs bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-full text-red-600 font-medium"
+                title="Clear checked items"
+              >
+                Clear ({checkedCount})
+              </button>
+            )}
+            <button 
+              onClick={cycleSortMode}
+              className="flex items-center gap-1 text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full text-slate-600"
+              title="Sort by"
+            >
+              <ArrowUpDown size={12} />
+              {sortBy === 'category' && 'By Category'}
+              {sortBy === 'name' && 'A-Z'}
+              {sortBy === 'default' && 'Default'}
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">

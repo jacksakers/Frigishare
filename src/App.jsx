@@ -13,7 +13,7 @@ import AddItemModal from './components/AddItemModal';
 import EditItemModal from './components/EditItemModal';
 import ConsumptionModal from './components/ConsumptionModal';
 import ShoppingListView from './components/ShoppingListView';
-import { generateItemId } from './utils/helpers';
+import { generateItemId, roundToHalf } from './utils/helpers';
 
 export default function App() {
   const { currentUser, householdId } = useAuth();
@@ -36,6 +36,7 @@ function MainApp() {
   const { householdId } = useAuth();
   const [view, setView] = useState('fridge'); // fridge, pantry, list
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedShelf, setSelectedShelf] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [showConsumptionModal, setShowConsumptionModal] = useState(false);
   
@@ -116,7 +117,7 @@ function MainApp() {
                 // Calculate adjusted consumption based on days passed
                 const adjustedItems = itemsWithUsage.map(item => {
                   const dailyUsage = item.weeklyUsage / 7;
-                  const estimatedUsage = Math.round(dailyUsage * daysDiff * 100) / 100;
+                  const estimatedUsage = roundToHalf(dailyUsage * daysDiff);
                   return {
                     ...item,
                     estimatedUsage,
@@ -181,8 +182,8 @@ function MainApp() {
     if (itemsWithUsage.length > 0) {
       const adjustedItems = itemsWithUsage.map(item => ({
         ...item,
-        estimatedUsage: item.weeklyUsage,
-        actualUsage: item.weeklyUsage
+        estimatedUsage: roundToHalf(item.weeklyUsage),
+        actualUsage: roundToHalf(item.weeklyUsage)
       }));
       setConsumptionItems(adjustedItems);
       setDaysSinceLastCheckIn(7); // Simulate 7 days
@@ -196,10 +197,10 @@ function MainApp() {
     try {
       // Update each item with the user-confirmed consumption
       for (const item of adjustedConsumptionItems) {
-        const newQty = Math.max(0, item.qty - item.actualUsage);
+        const newQty = Math.max(0, roundToHalf(item.qty - item.actualUsage));
         const itemRef = doc(db, 'households', householdId, 'items', item.id);
         await updateDoc(itemRef, {
-          qty: parseFloat(newQty.toFixed(2))
+          qty: newQty
         });
       }
       
@@ -218,6 +219,11 @@ function MainApp() {
   };
 
   // -- Handlers --
+  const handleQuickAddFromShelf = (shelfName) => {
+    setSelectedShelf(shelfName);
+    setIsAddModalOpen(true);
+  };
+
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!householdId) return;
@@ -225,18 +231,19 @@ function MainApp() {
     const formData = new FormData(e.target);
     const itemName = formData.get('name');
     const itemId = generateItemId(itemName);
-    const qty = parseFloat(formData.get('qty'));
+    const qty = roundToHalf(parseFloat(formData.get('qty')));
     const location = formData.get('location') || (view === 'pantry' ? 'pantry' : 'fridge');
+    const subLocation = formData.get('subLocation') || selectedShelf;
     
     const newItem = {
       name: itemName,
       location: location,
-      subLocation: formData.get('subLocation'),
+      subLocation: subLocation,
       category: formData.get('category'),
       qty: qty,
       unit: formData.get('unit'),
-      weeklyUsage: parseFloat(formData.get('weeklyUsage') || 0),
-      minThreshold: parseFloat(formData.get('minThreshold') || 0),
+      weeklyUsage: roundToHalf(parseFloat(formData.get('weeklyUsage') || 0)),
+      minThreshold: roundToHalf(parseFloat(formData.get('minThreshold') || 0)),
       note: formData.get('note') || ''
     };
     
@@ -248,7 +255,7 @@ function MainApp() {
         // Item exists, merge quantities
         const existingData = existingDoc.data();
         await updateDoc(itemRef, {
-          qty: existingData.qty + qty,
+          qty: roundToHalf(existingData.qty + qty),
           // Update other fields if needed
           note: newItem.note || existingData.note,
           subLocation: newItem.subLocation || existingData.subLocation
@@ -259,6 +266,7 @@ function MainApp() {
       }
       
       setIsAddModalOpen(false);
+      setSelectedShelf(null);
       e.target.reset(); // Reset form after submission
     } catch (error) {
       console.error('Error adding item:', error);
@@ -275,10 +283,10 @@ function MainApp() {
       location: formData.get('location') || editingItem.location,
       subLocation: formData.get('subLocation'),
       category: formData.get('category'),
-      qty: parseFloat(formData.get('qty')),
+      qty: roundToHalf(parseFloat(formData.get('qty'))),
       unit: formData.get('unit'),
-      weeklyUsage: parseFloat(formData.get('weeklyUsage') || 0),
-      minThreshold: parseFloat(formData.get('minThreshold') || 0),
+      weeklyUsage: roundToHalf(parseFloat(formData.get('weeklyUsage') || 0)),
+      minThreshold: roundToHalf(parseFloat(formData.get('minThreshold') || 0)),
       note: formData.get('note') || ''
     };
     
@@ -303,6 +311,30 @@ function MainApp() {
     }
   };
 
+  const handleAddToCart = async (item) => {
+    if (!householdId) return;
+
+    try {
+      // Check if item already in shopping list
+      const exists = shoppingList.find(
+        li => li.name.toLowerCase() === item.name.toLowerCase() && !li.checked
+      );
+      
+      if (!exists) {
+        const shoppingRef = collection(db, 'households', householdId, 'shopping_list');
+        await addDoc(shoppingRef, {
+          name: item.name,
+          checked: false,
+          autoAdded: false,
+          category: item.category || 'other',
+          note: item.note || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+
   // --- Render Helpers ---
   const renderShelves = (currentLoc) => {
     // Group items by subLocation (Shelf)
@@ -317,7 +349,7 @@ function MainApp() {
     const allShelves = [...new Set([...defaultShelves, ...usedShelves])];
 
     return allShelves.map(shelfName => (
-      <Shelf key={shelfName} title={shelfName} type={currentLoc}>
+      <Shelf key={shelfName} title={shelfName} type={currentLoc} onAddItem={handleQuickAddFromShelf}>
         {items.filter(i => i.subLocation === shelfName).map(item => (
           <FoodItem 
             key={item.id} 
@@ -409,9 +441,13 @@ function MainApp() {
       {/* --- Modals --- */}
       <AddItemModal 
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setSelectedShelf(null);
+        }}
         onSubmit={handleAddItem}
         currentLocation={view}
+        selectedShelf={selectedShelf}
       />
 
       <EditItemModal 
@@ -419,6 +455,7 @@ function MainApp() {
         onClose={() => setEditingItem(null)}
         onSubmit={handleUpdateItem}
         onDelete={handleDelete}
+        onAddToCart={handleAddToCart}
       />
 
       <ConsumptionModal 

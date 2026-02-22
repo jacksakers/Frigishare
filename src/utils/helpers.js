@@ -8,6 +8,11 @@ export const generateItemId = (name) => {
     .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 };
 
+// Helper function to round to nearest 0.5
+export const roundToHalf = (num) => {
+  return Math.round(num * 2) / 2;
+};
+
 // Helper function for category emojis
 export const getCategoryEmoji = (cat) => {
   switch(cat) {

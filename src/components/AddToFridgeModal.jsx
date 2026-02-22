@@ -6,7 +6,7 @@ const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
   const [subLocation, setSubLocation] = useState('Top Shelf');
   const [category, setCategory] = useState('other');
   const [qty, setQty] = useState(1);
-  const [unit, setUnit] = useState('unit');
+  const [unit, setUnit] = useState('servings');
 
   if (!isOpen || !item) return null;
 
@@ -54,7 +54,7 @@ const AddToFridgeModal = ({ item, isOpen, onClose, onConfirm }) => {
               <label className="block text-sm font-bold text-slate-600 mb-2">Quantity</label>
               <input 
                 type="number" 
-                step="0.1"
+                step="0.5"
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
                 className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"

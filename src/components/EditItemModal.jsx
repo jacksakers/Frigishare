@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
 
-const EditItemModal = ({ item, onClose, onSubmit, onDelete }) => {
+const EditItemModal = ({ item, onClose, onSubmit, onDelete, onAddToCart }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   
   if (!item) return null;
@@ -33,7 +33,7 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete }) => {
                   required 
                   name="qty" 
                   type="number" 
-                  step="0.1" 
+                  step="0.5" 
                   defaultValue={item.qty} 
                   className="w-full p-2 bg-slate-50 rounded border border-slate-200 mt-1" 
                 />
@@ -165,6 +165,19 @@ const EditItemModal = ({ item, onClose, onSubmit, onDelete }) => {
             >
               Delete
             </button>
+            {onAddToCart && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  onAddToCart(item);
+                  onClose();
+                }} 
+                className="flex-1 bg-blue-100 text-blue-600 p-3 rounded-lg font-bold hover:bg-blue-200 flex items-center justify-center gap-2"
+              >
+                <ShoppingCart size={18} />
+                Cart
+              </button>
+            )}
             <button 
               type="submit" 
               className="flex-[2] bg-slate-800 text-white p-3 rounded-lg font-bold hover:bg-slate-900"
